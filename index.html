@@ -45,10 +45,11 @@
     let store = {};
     const loadData = () => {
       return Promise.all([
-        d3.csv("routes.csv")
-      ]).then(datasets => {
-        store.routes = datasets[0];
-        store.geoJSON = datasets[1]
+        d3.csv("routes.csv"),
+        d3.json("countries.geo.json")
+      ]).then(dataSets => {
+        store.routes = dataSets[0];
+        store.geoJSON = dataSets[1]
         return store;
       })
     }
@@ -164,6 +165,43 @@
              .call(axisY)
   }
 
+  const getMapConfig = () => {
+    let width = 600;
+    let height = 400;
+    let container = d3.select("#Map")
+                      .attr("width", width)
+                      .attr("height", height)
+    return {
+      width, height, container
+      }
+  }
+
+  const getMapProjection = (config) => {
+    let {width, height} = config;
+    let projection = d3.geoMercator();
+    projection.scale(97)
+              .translate([width / 2, height / 2 + 20])
+              
+    store.mapProjection = projection;
+    return projection;
+  }
+
+  const drawBaseMap = (container, countries, projection) => {
+    let path = d3.geoPath().projection(projection);
+    
+    container.selectAll("path").data(countries)
+             .enter().append("path")
+             .attr("d", path)
+             .attr("stroke", "#ccc")
+             .attr("fill", "#eee")
+  }
+
+  const drawMap = (geoJeon) => {
+    let config = getMapConfig();
+    let projection = getMapProjection(config)
+    drawBaseMap(config.container, geoJeon.features, projection)
+  }
+
   const showData = () => {
     //Get the routes from our store variable
     let routes = store.routes
@@ -174,6 +212,7 @@
 
     // Draw airlines barchart
     drawAirlinesChart(airlines);
+    drawMap(store.geoJSON)
   }
 
   loadData().then(showData);
