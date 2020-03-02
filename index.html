@@ -202,6 +202,55 @@
     drawBaseMap(config.container, geoJeon.features, projection)
   }
 
+  const groupByAirport = (data) => {
+    //We use reduce to transform a list into a object where each key points to an aiport. This way makes it easy to check if is the first time we are seeing the airport.
+    let result = data.reduce((result, d) => {
+        //The || sign in the line below means that in case the first option is anything that Javascript consider false (this insclude undefined, null and 0), the second option will be used. Here if result[d.DestAirportID] is false, it means that this is the first time we are seeing the airport, so we will create a new one (second part after ||)
+        let currentDest = result[d.DestAirportID] || {
+            "AriportID": d.DestAirportID,
+            "Airport": d.DestAirport,
+            "Latitude": +d.DestLatitude,
+            "Longitude": +d.DestLongitude,
+            "City": d.DestCity,
+            "Country": d.DestCountry,
+            "Count": 0
+        }
+        currentDest.Count += 1
+        result[d.DestAirportID] = currentDest
+
+        //After doing for the destination airport, we also update the airport the airplane is departing from.
+        let currentSource = result[d.SourceAirportID] || {
+            "AriportID": d.SourceAirportID,
+            "Airport": d.SourceAirport,
+            "Latitude": +d.SourceLatitude,
+            "Longitude": +d.SourceLongitude,
+            "City": d.SourceCity,
+            "Country": d.SourceCountry,
+            "Count": 0
+        }
+
+        currentSource.Count += 1
+        result[d.SourceAirportID] = currentSource
+        return result
+    }, {})
+    //We map the keys to the actual ariorts, this is an way to transform the object we got in the previous step into a list.
+    result = Object.keys(result).map(key => result[key])
+    return result
+  }
+
+  const drawAirports = (airports) => {
+    let config = getMapConfig();
+    let projection = getMapProjection(config)
+    let container = config.container;
+    let circles = container.selectAll("circle");
+    circles.data(airports).enter()
+           .append("circle")
+           .attr("r", 1)
+           .attr("cx", d => projection([d.Longitude, d.Latitude])[0])
+           .attr("cy", d => projection([d.Longitude, d.Latitude])[1])
+           .attr("fill", "#2a5599")
+  }
+
   const showData = () => {
     //Get the routes from our store variable
     let routes = store.routes
@@ -213,6 +262,9 @@
     // Draw airlines barchart
     drawAirlinesChart(airlines);
     drawMap(store.geoJSON)
+
+    let airports = groupByAirport(store.routes);
+    drawAirports(airports)
   }
 
   loadData().then(showData);
