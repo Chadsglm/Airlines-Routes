@@ -23,7 +23,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="X-UA-Compatible" content="ie=edge">
-  
+
   <title>Document</title>
 </head>
 
@@ -38,6 +38,53 @@
       <h2>Airports</h2>
       <svg id="Map"></svg>
     </div>
-  </div>  
+  </div> 
+  
+  <script src="d3.js"></script>
+  <script> 
+    let store = {};
+    const loadData = () => {
+      return Promise.all([
+        d3.csv("routes.csv")
+      ]).then(datasets => {
+        store.routes = datasets[0];
+        store.geoJSON = datasets[1]
+        return store;
+      })
+    }
+
+    const groupByAirline = (data) => {
+    //Iterate over each route, producing a dictionary where the keys is are the ailines ids and the values are the information of the airline.
+    let result = data.reduce((result, d) => {
+      let currentData = result[d.AirlineID] || {
+        "AirlineID": d.AirlineID,
+        "AirlineName": d.AirlineName,
+        "Count": 0
+      }
+      
+      currentData.Count += 1;
+      
+      result[d.AirlineID] = currentData;
+
+      return result;
+    }, {})
+
+    //We use this to convert the dictionary produced by the code above, into a list, that will make it easier to create the visualization. 
+    result = Object.keys(result).map(key => result[key]);
+    result = result.sort((a, b) => d3.descending(a.Count, b.Count));
+
+    return result;
+  }
+
+  const showData = () => {
+    //Get the routes from our store variable
+    let routes = store.routes
+    // Compute the number of routes per airline.
+    let airlines = groupByAirline(store.routes);
+    console.log(airlines);
+  }
+
+  loadData().then(showData);
+  </script>
 </body>
 </html>
